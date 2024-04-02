@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+		<link rel="stylesheet" href="MX_fS_CSS.css">
+		<script src="MX_fS_JS.js"></script>
+	</head>
+
+	<body>
+		<!-- This calls the php function, and on submit, the page refreshes (unless otherwise specified in php) -->
+		<form name="saveData" id="saveData" action="saveFile.php" method="post">
+			<!-- Any variables you want to pass to the php have to be here -->
+			<input type="hidden" name="experimentData" id="experimentData"> <!-- this value should be your data array after JSON.stringify(data)  -->
+			<input type="hidden" name="subjID" id="subjID" value="test">
+			<input type="hidden" name="startTime" id="startTime" value="test">
+			<input type="hidden" name="startDate" id="startDate" value="test">
+			<input type="hidden" name="completedTrialsNum" id="completedTrialsNum" value=0>
+		</form>
+		
+		<!-- instructions -->
+		<div id="startingInstructions" class="instructions">
+			<div class="hidden">
+				<script type="text/javascript">
+
+				// LOAD COUNTERBALANCING CSV and EXPERIMENT SEQUENCE JSON FILE 
+				var data = $.ajax({
+							  url: 'counterbalancing.csv',
+							  dataType: 'text',
+							}).done(successFunction);
+
+
+				function successFunction(data) { // converts counterbalancing csv to JS array
+					  var allRows = data.split(/\r?\n|\r/);
+					  // table is an array with each row appended, i.e. row 0 = table[0]
+					  var table = [];
+					  for (var singleRow = 0; singleRow < allRows.length; singleRow++) {
+
+						   var rowCells = allRows[singleRow].split(',');
+						    for (var rowCell = 0; rowCell < rowCells.length; rowCell++) {
+						    	if (rowCell == 0){
+						    		var table_row = []
+						    	}						    	
+						    	table_row.push(rowCells[rowCell]);
+						    }
+						    table.push(table_row);
+
+					}
+					findRow(table); // calls function to find row to be sampled 
+				}
+
+				function findRow(table){
+					var found = false;
+					for (var row = 1; row < table.length; row++){
+						var sampled = table[row][1];
+						if (found == false){
+							if (sampled == "0"){
+								var seq_filepath = table[row][0]; // selects sequence filepath that has not been sampled --> 0
+								var found = true;
+							}
+						}
+					}
+					var stim_seq = $.ajax({ // loads in stimulus sequence from server
+	                				url: seq_filepath,
+	                				method: 'GET',
+	                				dataType: 'json',
+	                				data: JSON.stringify(),
+	                				success: function (data) {
+	                    			stim_seq = data;
+	                    			preload(practice_seq, stim_seq); // calls function to preload all scene images 
+	                    			preloadMasks(practice_seq, stim_seq); // calls function to preload all mask images 
+	                				},
+            		});
+
+				}
+
+				//PRELOADING FUNCTIONS
+				var images = new Array()
+				var masks = new Array()
+				function preload(practice_seq, stim_seq) {
+					for (var h = 0; h < practice_seq.length; h++) { // loops through all trials in practice sequence
+					images[h] = new Image() // constructer that creates an empty image object
+					images[h].src = practice_seq[h].image_path_target // sets the image source for the object 
+
+					masks[h] = new Image()
+					masks[h].src = practice_seq[h].mask_path
+					// console.log(h, "h")
+					}
+
+					for (var j = 0; j < practice_seq.length; j++) { // loops through all trials in practice sequence
+					masks[j] = new Image()
+					masks[j].src = practice_seq[j].mask_path
+					// console.log(j, "j")
+					}
+
+					for (var i = 0; i < stim_seq.length; i++) { // loops through all experimental trials in sequence 
+					images[i] = new Image()
+					images[i].src = stim_seq[i].image_path_target
+					masks[i] = new Image()
+					masks[i].src = stim_seq[i].mask_path
+					// console.log(i, "i")
+					}
+				}
+
+				
+				function preloadMasks(practice_seq, stim_seq) {
+
+					for (var k = 0; k < stim_seq.length; k++) { // loops through all experimental trials in sequence 
+					masks[k] = new Image()
+					masks[k].src = stim_seq[k].mask_path
+					// console.log(k, "k")
+					}
+				}
+				
+				</script>
+			</div>
+		</div>
+
+		<div id ="getConsent" class="instructions">
+			<img src="consent.png" class="consent"/>
+			<strong>Please click 'AGREE' if you have read the consent form and agree to participate. If you do not consent to participate, close this window.</strong>
+		</div>
+
+
+		<!-- INPUT TURK WORKER ID -->
+		<div id="workerId" class="workerIdDiv">
+
+			<p>
+				<font color="black">Thank you for your interest in this task. Before getting started, you will need to verify that you are a <strong>Prolific participant</strong>. Please note that you will only get compensated for your participation if you provide a valid Prolific ID.</font>
+
+				<!-- <font color="black">Thank you for your interest in this <strong>Human Intelligence Task (HIT)</strong>. Before getting started, you will need to verify that you are an <strong>Amazon Mechanical Turk (MTurk) Worker</strong>. Please note that you will only get compensated for your participation if you provide a valid MTurk Worker ID.</font> -->
+			</p>
+
+			 <p>
+				<font color="black">Please enter your <strong>Prolific ID</strong> in the textbox below.</font>
+
+			 	<!-- <font color="black">Please enter your <strong>MTurk Worker ID</strong> in the textbox below.</font> -->
+			 </p>
+			 <!-- <p>
+			 	You can find your Worker ID on the <strong>TOP LEFT</strong> of the screen on your <a href="https://worker.mturk.com/dashboard" target="_blank"> MTurk Dashboard</a>. It should look something like this: 
+			 </p>
+			 <p>
+			 	<img id="findWorkerId" src="" width=800>
+			 </p> -->
+			 <br>
+			 <p>
+				Enter your unique Prolific ID here: <input type="text" id="turkWorkerId" placeholder="Prolific ID" class="textboxDiv"/>
+				<!-- Enter your unique Prolific ID here: <input type="text" id="turkWorkerId" placeholder="Worker ID" class="textboxDiv"/> -->
+
+			 	<!-- Enter your unique Worker ID here: <input type="text" id="turkWorkerId" placeholder="Worker ID" class="textboxDiv"/> -->
+			 </p>
+			 <br>  
+
+			<font color="FF0000"> <strong>
+				<p id="workerId_feedback"></p>
+			</strong> </font>
+
+			 <div>
+			 	<p>
+			 		<strong>Be sure to double check the spacing, spelling, and capitalization of your Worker ID before clicking the NEXT button to proceed.</strong>
+			 	</p>
+			 </div>
+			 <br>
+			 <!-- <input type="submit" id="backButton" class="buttonsDiv" value="BACK" style="width: 100px;" onclick="showStartPage()"/> -->
+			 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp; 
+			 <input type="submit" id="nextButton" class="buttonsDiv" value="NEXT" style="width: 100px;" onclick="saveWorkerId()"/>
+		</div>	  
+
+		<div id ="Instructions2" class="instructions">
+			<h1>Instructions</h1>
+			<p>In the following experiment, you will be asked to look at pictures of everyday scenes and make distance judgments from yourself to objects in them. <b>Every scene has a different target object.</b></p>
+		    
+		    <p>For each trial, you will see an image with a small red circle (the target) displayed on top of an object in the scene, like in the example below. You will imagine yourself standing in the scene and make a judgment of how far away the object directly underneath the target is from your toes. For example, in the image below, you would be judging how far away the kettle is from you, as if you were physically standing in the scene. </p>
+
+	        <p>The target will always appear in the center of the screen, directly in your line of view if you were standing in the middle of the scene.</p>
+
+			<img src="example.png" class="example" width=730/>
+		</div>
+
+		<div id = "FinalInstructions" class="instructions">
+		</div>
+
+		<div id = "getUnits" class="instructions">
+		</div>
+
+
+		<div id="lastBlockInstructions" class="instructions"> 
+		</div>
+
+
+		<!-- buttons -->
+
+		<div id="startConsentButton" class="buttonDivPg1">
+			<a href="#" id="startConsentText" onclick="showConsent()">Next</a>
+		</div>
+
+		<div id="Instructions2Button" class="buttonDivPg2">
+			<a href="#" id="Instructions2Text" onclick="showWorkerIdInputBox()">Agree</a>
+		</div>
+
+		<div id="FinalInstructionsButton" class="buttonDivPg3">
+			<a href="#" id="FinalInstructionsText" onclick="finalInstructions()">Next</a>
+
+		</div>
+
+		<div id="getUnitsButton" class = "buttonDivPg4">
+			<a href="#" id="getUnitsText" onclick="myFunction();getUnits()">Begin</a>
+			<script type="text/javascript">
+				function myFunction() {
+				  alert("Please make your browser window full screen"); // so that images are consistently centered
+				}
+			</script>
+		</div>
+
+		<div id="metersSelectedButton" class = "metersButtonDiv">
+			<a href="#" id="metersSelectedText" onclick="recordUnitsMeters()">Meters</a>
+		</div>
+
+		<div id="feetSelectedButton" class = "feetButtonDiv">
+			<a href="#" id="feetSelectedText" onclick="recordUnitsFeet()">Feet</a>
+		</div>
+
+		<div id="startPracticeButton" class = "startPracticeButtonDiv">
+			<a href="#" id="startPracticeText" onclick="startPractice();">Start Practice</a>
+
+
+		</div>
+
+		<div id="startTrialsButton" class = "startTrialsButtonDiv">
+			<a href="#" id="startTrialsText" onclick="runTrial();">Start</a>
+		</div>
+		<!-- button to continue trials after break post block -->
+		<div id="restartTrialsButton" class = "restartTrialsButtonDiv">
+			<a href="#" id="restartTrialsText" onclick="runTrial();">Continue Experiment</a>
+		</div>		
+
+		<div id="revealCodeButton" class="buttonDiv">
+			<a href="#" id="revealCodeText" type onclick="endExperiment()">Reveal Code</a>
+		</div>
+
+
+		<!-- div to preload all images to prevent lag -->
+		<div id="preload" class="preload">
+		</div>
+
+		<div id="preload_masks" class="preload_masks">
+		</div>
+
+		<div id="preloadExperiment" class="preloadExperiment">
+		</div>
+
+		<div id="preload_masksExperiment" class="preload_masksExperiment">
+		</div>
+
+		<!-- start experiment -->
+		<div id="start_trials" class="startTrialsDiv">
+			<p>You have completed the practice trials!</p> 
+			<p>REMINDER: On some trials there will be no red circle - respond '0' on these trials.</p>
+			<b>Pay close attention to the fixation cross and try your best to answer how far the object is!</b>
+			<p> </p>
+			<p>We appreciate your effort. Please be as precise as possible!</p>
+			<p>Click 'START' to continue to the experiment.</p>
+		</div>
+
+		<!-- Post-Block Break -->
+<!-- 		<div id="restart_trials" class="restartTrialsDiv">
+			<p>Feel free to take a brief break!</p> 
+			<p>Click 'Continue Experiment' to continue.</p>
+		</div> -->
+
+		<!-- end experiment -->
+		<div id="lastBlockInstructions" class="instructions">
+		</div>
+
+
+		<!-- fixations -->
+		<div id="fixation" class="fixationDiv">
+			<img id = "fixation_image" src="" width=750>
+		</div>
+
+		<!-- mask -->
+		<div id="mask" class="maskDiv">
+			<img id= "mask_image" src="" width=2000>
+		</div>
+
+		<div id="maskExp" class="maskDiv">
+			<img id= "mask_image" src="" width=750>
+		</div>
+
+		<!-- Scene (w/ target) -->
+		<div id="scene" class="sceneDiv">
+			<img id= "scene_image" src="" width=730>
+			<!-- <img id= "scene_image" src="" width=1157> -->
+		</div>
+
+		<div id="sceneExp" class="sceneDiv">
+			<img id= "scene_image" src="" width=730>
+			<!-- <img id= "scene_image" src="" width=1157> -->
+
+		</div>
+		<div id="practice_feedback" class="practice_feedbackDiv">
+		</div>
+
+		<div id="response" class="responseDiv">
+			<h1> How far away is the target? </h1>
+			<input id="numb" autocomplete="off" onfocus="this.value=''" value="" autofocus/>
+
+			<button type="button" onfocus="this.value=''" value="" onclick="validateForm();">Submit</button>
+			<p id="feedback"></p>
+			<script>
+			$("numb").focus();
+			var x = document.getElementById("numb").autofocus; // checks that cursor is in the form field automatically 
+			// console.log(x, "is it autofocused?")
+			
+			var input = document.getElementById("numb");
+			input.addEventListener("keyup", function(event) { // allows participant to press enter 
+			  if (event.keyCode === 13) {
+			   validateForm();
+			  }
+			});
+			</script>
+
+			<script>
+							
+				function validateForm() { // validates trial depth response 
+				var estimate, text;
+
+				// Get the value of the input field with id="numb"
+				estimate = document.getElementById("numb").value;
+
+				// If x is not a Number, less than zero, or no response was given
+				if (isNaN(estimate) || estimate < 0 || estimate.length == 0) {
+					text = "Please enter a number greater than or equal to zero (decimals allowed)";
+				} 
+				else {
+					text=""
+					if (practiced == false){
+						var practice_feedback = showFeedback();
+						practice_trial ++; 
+						var next = setTimeout(function(){startPractice();}, 2200); // the time here is how long it takes to show up NOT time on the screen
+						// startPractice();
+						document.getElementById("numb").value = ""
+					}
+					else{
+						trial ++;
+						runTrial();
+
+						document.getElementById("numb").value = ""
+
+					}
+					$(".responseDiv").hide()
+				}
+				document.getElementById("feedback").innerHTML = text;
+				}
+			</script>
+			
+		</div>
+
+
+		<div id="age" class="ageDiv">
+			<h1> What term best expresses how you describe your gender identity? </h1>
+			<p>Note: we are asking about gender in order to understand how your responses may differ based on different demographic characteristics. Specifically in this case, we are referring to your gender identity.</p>
+
+
+			<html>
+
+			<script>
+			function getGender() {
+			var mylist = document.getElementById("myList");
+			document.getElementById("gender").value = mylist.options[mylist.selectedIndex].text;
+			var genderResponse = mylist.options[mylist.selectedIndex].text;
+
+			}
+			</script>
+
+			<body>
+			<form>
+			<b> Select a term: </b>
+			<select id = "myList" onchange = "getGender()">
+			<option> ---Choose a term--- </option>
+			<option> Man </option>
+			<option> Woman </option>
+			<option> Non-binary </option>
+			<option> Transgender </option>
+			<option>None of these describe me</option>
+			<option>Prefer not to answer</option>
+			</select>
+			<p> Your selected term is: </p>
+			<input type = "text" id = "gender" size = "20">
+			</form>
+			</body>
+			</html>
+
+
+
+			<h1> Please report your age in years below. </h1>
+			<input id="age_numb" autocomplete="off" onfocus="this.value=''" value="" autofocus/>
+
+			<button type="button" onfocus="this.value=''" value="" onclick="age_validateForm();">Submit</button>
+			<p id="_feedback"></p>
+			<script>
+			$("age_numb").focus();
+			var x_age = document.getElementById("age_numb").autofocus; // checks that cursor is in the form field automatically 
+			// console.log(x, "is it autofocused?")
+			
+			var input_age = document.getElementById("age_numb");
+			input_age.addEventListener("keyup", function(event) { // allows participant to press enter 
+			  if (event.keyCode === 13) {
+			   age_validateForm();
+			  }
+			});
+			</script>
+
+			<script>
+				
+			function age_validateForm() { // validates trial depth response 
+			  var age_response, _text;
+
+			 // Get the value of the input_age field with id="age_numb"
+			 age_response = document.getElementById("age_numb").value;
+
+
+			  // If x is not a Number, less than zero, or no response was given
+			  if (isNaN(age_response) || age_response < 0 || age_response.length == 0) {
+			    _text = "Please enter a valid number";
+			  } 
+			  else {
+			  	// getAQ();
+			  	lastInstructions();
+
+			  	_text=" "
+
+			  }
+			  document.getElementById("_feedback").innerHTML = _text;
+			}
+			</script>
+		</div>
+		
+<!-- NEED TO REMOVE THE QUESTIONNAIRE FROM FORM FORMAT, AND JUST USE TEXT DIVS AND RADIO BUTTONS -->
+
+		<div id="container-questionnaire">
+	    <h1>Task Complete</h1>
+
+	    <hr />
+
+	    <p>You finished the experiment!  Please fill out the following questionnaire. </p>
+
+		<div class="wrap">
+		  <h1 class="likert-header">PLEASE PROVIDE A RESPONSE TO ALL STATEMENTS. DO NOT SKIP ANY ITEMS.</h1>
+		  <form action="saveAQ.php" method="post">
+		    <label class="statement">I prefer to do things with others rather than on my own.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="1" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="1" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="1" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="1" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="1" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I prefer to do things the same way over and over again.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="2" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="2" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="2" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="2" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="2" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I frequently get so strongly absorbed in one thing that I lose sight of other things.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="3" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="3" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="3" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="3" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="3" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I often notice small sounds when others do not.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="4" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="4" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="4" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="4" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="4" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I usually notice car number plates or similar strings of information.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="5" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="5" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="5" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="5" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="5" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">Other people frequently tell me that what I’ve said is impolite, even though I think it is polite.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="6" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="6" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="6" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="6" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="6" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">When I’m reading a story, I can easily imagine what the characters might look like.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="7" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="7" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="7" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="7" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="7" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I am fascinated by dates.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="8" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="8" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="8" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="8" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="8" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">In a social group, I can easily keep track of several different people’s conversations.
+		</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="9" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="9" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="9" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="9" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="9" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I find social situations easy.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="10" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="10" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="10" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="10" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="10" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I tend to notice details that others do not.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="11" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="11" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="11" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="11" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="11" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I would rather go to a library than a party.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="12" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="12" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="12" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="12" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="12" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I find making up stories easy.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="13" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="13" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="13" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="13" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="13" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I find myself drawn more strongly to people than to things.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="14" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="14" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="14" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="14" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="14" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I tend to have very strong interests which I get upset about if I can’t pursue.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="15" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="15" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="15" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="15" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="15" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I enjoy social chit-chat.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="16" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="16" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="16" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="16" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="16" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">When I talk, it isn’t always easy for others to get a word in edgeways.</label>
+		    <ul class='likert'>
+		      <<li>
+		        <input type="radio" name="17" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="17" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="17" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="17" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="17" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I am fascinated by numbers.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="18" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="18" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="18" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="18" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="18" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">When I’m reading a story, I find it difficult to work out the characters’ intentions.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="19" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="19" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="19" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="19" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="19" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I don’t particularly enjoy reading fiction.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="20" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="20" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="20" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="20" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="20" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I find it hard to make new friends.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="21" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="21" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="21" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="21" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="21" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I notice patterns in things all the time.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="22" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="22" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="22" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="22" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="22" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I would rather go to the theatre than a museum.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="23" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="23" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="23" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="23" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="23" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">It does not upset me if my daily routine is disturbed.</label>
+		    <ul class='likert'>
+		      <<li>
+		        <input type="radio" name="24" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="24" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="24" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="24" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="24" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I frequently find that I don’t know how to keep a conversation going.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="25" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="25" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="25" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="25" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="25" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I find it easy to “read between the lines” when someone is talking to me.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="26" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="26" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="26" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="26" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="26" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I prefer to do things with others rather than on my own.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="27" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="27" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="27" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="27" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="27" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I usually concentrate more on the whole picture, rather than the small details.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="28" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="28" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="28" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="28" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="28" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I am not very good at remembering phone numbers.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="29" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="29" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="29" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="29" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="29" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I don’t usually notice small changes in a situation, or a person’s appearance.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="30" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="30" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="30" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="30" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="30" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I know how to tell if someone listening to me is getting bored.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="31" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="31" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="31" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="31" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="31" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I find it easy to do more than one thing at once.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="32" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="32" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="32" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="32" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="32" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">When I talk on the phone, I’m not sure when it’s my turn to speak.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="33" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="33" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="33" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="33" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="33" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I enjoy doing things spontaneously.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="34" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="34" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="34" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="34" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="34" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I am often the last to understand the point of a joke.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="35" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="35" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="35" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="35" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="35" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I find it easy to work out what someone is thinking or feeling just by looking at their face.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="36" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="36" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="36" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="36" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="36" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">If there is an interruption, I can switch back to what I was doing very quickly.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="37" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="37" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="37" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="37" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="37" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I am good at social chit-chat.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="38" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="38" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="38" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="38" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="38" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">People often tell me that I keep going on and on about the same thing.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="39" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="39" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="39" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="39" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="39" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">When I was young, I used to enjoy playing games involving pretending with other children.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="40" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="40" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="40" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="40" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="40" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I like to collect information about categories of things (e.g. types of car, types of bird, types of train, types of plant, etc.).</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="41" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="41" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="41" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="41" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="41" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I find it difficult to imagine what it would be like to be someone else.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="42" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="42" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="42" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="42" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="42" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I like to plan any activities I participate in carefully.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="43" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="43" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="43" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="43" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="43" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I enjoy social occasions.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="44" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="44" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="44" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="44" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="44" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I find it difficult to work out people’s intentions.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="45" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="45" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="45" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="45" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="45" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">New situations make me anxious.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="46" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="46" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="46" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="46" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="46" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I enjoy meeting new people.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="47" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="47" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="47" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="47" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="47" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I am a good diplomat.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="48" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="48" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="48" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="48" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="48" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I am not very good at remembering people’s date of birth.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="49" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="49" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="49" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="49" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="49" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    <label class="statement">I find it very easy to play games with children that involve pretending.</label>
+		    <ul class='likert'>
+		      <li>
+		        <input type="radio" name="50" value="1">
+		        <label>Definitely agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="50" value="2">
+		        <label>Slightly Agree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="50" value="3">
+		        <label>Slightly Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="50" value="4">
+		        <label>Definitely Disagree</label>
+		      </li>
+		      <li>
+		        <input type="radio" name="50" value="0">
+		        <label>I prefer not to answer</label>
+		      </li>
+		    </ul>
+		    
+
+		  </form>
+
+		            
+	           
+	    </div>
+
+	    <hr />
+
+	    <div class="instructionsnav">
+	        <div class="row">
+	            <div class="col-xs-2">
+	            </div>
+	            <div class="col-xs-7">
+	            </div>
+	            <div class="col-xs-3">
+	                <button type="button" id="next" onclick="lastInstructions();" value="next" class="btn btn-primary btn-lg continue" >
+	                    Continue <span class="glyphicon glyphicon-arrow-right"></span>
+	                </button>
+	            </div>
+	        </div>
+	    </div>
+
+
+	</div>
+		
+	</body>
+</html> 

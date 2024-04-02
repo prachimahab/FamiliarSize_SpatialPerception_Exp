@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+		<link rel="stylesheet" href="MX_fS_CSS.css">
+		<link rel="shortcut icon" href="#">
+	</head>
+
+	<body>
+		<!-- this should be identical to the last page of your experiment -->
+		<div id="lastBlockInstructions" class="instructions">
+			<p style='text-align:center'>Congratulations, you have finished the experiment. Thank you for your participation!</p>
+			<p style='text-align:center'>Click the button below to reveal your unique completion code.</p>
+		</div>
+	</body>
+
+	<script>
+		var code = location.search; //returns everything after the ? in the url
+		code = code.split("=")[1]; //take value after "=" in the part of the url that has the code
+		$("#lastBlockInstructions").append("<br><p style='text-align:center'><strong>Your unique completion code is: </strong>" +code+"</p>");
+		$("#lastBlockInstructions").show();
+	</script>
+</html> 
